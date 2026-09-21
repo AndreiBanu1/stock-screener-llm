@@ -1,0 +1,37 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+env/
+ENV/
+
+# Cache directories
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# Generated output files
+output.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Project-specific
+uv.lock
+
+pyproject.toml
+.python-version
