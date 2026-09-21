@@ -1,108 +1,210 @@
 # Stock Screener LLM
 
-A LangGraph-based stock screening application that combines Yahoo Finance market data with an LLM to help users discover and analyze stocks using natural-language queries.
+A lightweight AI-powered stock screener built with **LangGraph**, **Ollama**, and **Yahoo Finance**.
+
+The application lets you describe the type of stocks or assets you are looking for in natural language. An LLM interprets the request, selects an appropriate Yahoo Finance screener, and returns relevant market data.
+
+## How It Works
+
+The application uses a simple LangGraph workflow:
+
+1. The user enters a natural-language request.
+2. The request is sent to a local LLM running through Ollama.
+3. The LLM decides whether the stock screening tool should be called.
+4. The tool selects an appropriate predefined Yahoo Finance screener.
+5. Yahoo Finance returns matching assets.
+6. The results are passed back to the LLM and presented to the user.
 
 ## Features
 
-* **Yahoo Finance Integration** — Retrieves stock market and financial data using `yfinance`.
-* **LLM-Powered Queries** — Uses LangChain and Ollama to interpret natural-language screening requests.
-* **LangGraph Workflow** — Coordinates the interaction between the LLM and stock screening tools.
-* **Predefined Stock Screeners** — Supports several screening strategies, including:
+* **Natural-language stock screening** — Ask for stocks using normal language instead of manually selecting filters.
+* **Yahoo Finance integration** — Uses `yfinance` to retrieve stock screening and market data.
+* **LLM tool calling** — The model determines when and how to use the stock screening tool.
+* **LangGraph workflow** — Handles the interaction between the user, LLM, and screening tool.
+* **Local LLM support** — Runs with Ollama using the `qwen3.5:9b` model.
+* **Conversation memory** — Uses LangGraph's in-memory checkpointer to preserve context during a session.
 
-  * Day gainers
-  * Day losers
-  * Most active stocks
-  * Growth technology stocks
-  * Undervalued stocks
-  * And more
+Supported Yahoo Finance screeners include:
+
+* Aggressive small caps
+* Day gainers
+* Day losers
+* Growth technology stocks
+* Most active stocks
+* Most shorted stocks
+* Small-cap gainers
+* Undervalued growth stocks
+* Undervalued large caps
+* Conservative foreign funds
+* High-yield bonds
+* Portfolio anchors
+* Large-cap growth funds
+* Mid-cap growth funds
+* Top mutual funds
+
+## Requirements
+
+* Python 3.14
+* Ollama
+* `qwen3.5:9b` Ollama model
+
+Python dependencies:
+
+* `langchain`
+* `langchain-ollama`
+* `langgraph`
+* `yfinance`
+* `colorama`
 
 ## Installation
 
-Clone the repository and install the project dependencies using `uv`:
+Clone the repository:
 
-```bash
-uv sync
+```bash id="w96gb9"
+git clone https://github.com/AndreiBanu1/stock-screener-llm.git
+cd stock-screener-llm
 ```
 
-Make sure Ollama is installed and running before starting the application.
+Create and activate a virtual environment:
+
+```bash id="pmkz5z"
+python3.14 -m venv .venv
+source .venv/bin/activate
+```
+
+Install the required Python packages:
+
+```bash id="lvtskc"
+pip install langchain langchain-ollama langgraph yfinance colorama
+```
+
+Make sure Ollama is installed and running, then download the model used by the application:
+
+```bash id="ctkx56"
+ollama pull qwen3.5:9b
+```
 
 ## Usage
 
-Run the application with:
+Start the application:
 
-```bash
+```bash id="g7ufw6"
 python flow.py
 ```
 
-You can then enter natural-language queries such as:
+You will be prompted to enter a request:
 
-```text
+```text id="vnofnt"
+🤖 Pass your prompt here:
+```
+
+For example:
+
+```text id="8k84ce"
 Show me today's top gainers
 ```
 
-```text
+```text id="63cr8d"
 Find undervalued growth stocks
 ```
 
-```text
-List the most active stocks
+```text id="m4nwur"
+Show me aggressive growth stocks from the technology sector
 ```
+
+The LLM interprets the request and calls the stock screening tool when appropriate.
 
 ## Project Structure
 
-```text
+The application consists of two Python source files:
+
+```text id="ra6kbu"
 .
-├── flow.py          # Main LangGraph workflow
-├── tool.py          # Stock screening tools
-├── pyproject.toml   # Project dependencies and configuration
-└── README.md        # Project documentation
+├── flow.py    # LangGraph workflow, LLM integration, and CLI
+└── tool.py    # Yahoo Finance stock screening tool
 ```
 
-## Dependencies
+### `flow.py`
 
-* `langchain>=1.3.15`
-* `langchain-ollama>=1.1.0`
-* `langgraph>=1.2.11`
-* `yfinance>=1.6.0`
-* `colorama>=0.4.6`
+Defines the LangGraph workflow and connects the application to the local Ollama model.
+
+It is responsible for:
+
+* Initializing `qwen3.5:9b` through `ChatOllama`
+* Binding the stock screener as an LLM tool
+* Routing between the LLM and tool execution
+* Maintaining conversation state in memory
+* Handling the command-line interaction
+
+### `tool.py`
+
+Contains the `simple_screener` LangChain tool.
+
+It:
+
+* Receives a Yahoo Finance screener type
+* Retrieves the corresponding predefined query
+* Requests results through `yfinance`
+* Extracts selected financial fields
+* Returns the results to the LLM
+
+The returned stock information can include:
+
+* Symbol
+* Company name
+* Bid and ask prices
+* Exchange
+* 52-week high and low
+* Analyst rating
+* Dividend yield
 
 ## Example
 
-### Prompt
+### Input
 
-```text
-Return a list of aggressive growth stocks from the technology sector.
+```text id="tr5z5d"
+Return aggressive growth stocks from the technology sector.
 ```
 
-### Response
+The LLM can translate the request into an appropriate Yahoo Finance screener, execute it, and return matching stocks together with relevant market information.
 
-The application returns matching stocks together with relevant Yahoo Finance data, such as:
+The exact stocks and values returned depend on the market data available from Yahoo Finance at the time of the request.
 
-```json
-{
-  "start": 0,
-  "count": 5,
-  "total": 57,
-  "quotes": [
-    {
-      "symbol": "WDC",
-      "shortName": "Western Digital Corporation",
-      "regularMarketPrice": 441.36,
-      "regularMarketChangePercent": 4.126263,
-      "marketCap": 159128338432,
-      "trailingPE": 16.395245,
-      "forwardPE": 13.901307,
-      "fiftyTwoWeekChangePercent": 292.6341
-    }
-  ]
-}
+## Architecture
+
+```text id="1dkvlw"
+User Prompt
+    │
+    ▼
+  Ollama
+ qwen3.5:9b
+    │
+    ▼
+ LangGraph
+    │
+    ├──── No tool required ────► Response
+    │
+    ▼
+simple_screener
+    │
+    ▼
+ Yahoo Finance
+    │
+    ▼
+ Screener Results
+    │
+    ▼
+    LLM
+    │
+    ▼
+   User
 ```
-
-The exact fields and results depend on the selected screener and the market data returned by Yahoo Finance.
 
 ## Disclaimer
 
-This project is intended for educational and informational purposes only. Market data may be delayed or incomplete, and the output should not be considered financial or investment advice.
+This project is intended for educational and informational purposes only.
+
+Market data provided by Yahoo Finance may be delayed, incomplete, or inaccurate. The output generated by the application should not be considered financial or investment advice.
 
 ## License
 
