@@ -1,8 +1,8 @@
 # Stock Screener LLM
 
-A lightweight AI-powered stock screener built with **LangGraph**, **Ollama**, and **Yahoo Finance**.
+An AI-powered stock screener built with **LangGraph**, **Ollama**, and **Yahoo Finance**.
 
-The application lets you describe the type of stocks or assets you are looking for in natural language. An LLM interprets the request, selects an appropriate Yahoo Finance screener, and returns relevant market data.
+The application allows users to describe the type of stocks or financial assets they are looking for using natural language. A local LLM interprets the request, selects an appropriate Yahoo Finance screener, retrieves market data, and generates a response based on the results.
 
 ## How It Works
 
@@ -13,18 +13,49 @@ The application uses a simple LangGraph workflow:
 3. The LLM decides whether the stock screening tool should be called.
 4. The tool selects an appropriate predefined Yahoo Finance screener.
 5. Yahoo Finance returns matching assets.
-6. The results are passed back to the LLM and presented to the user.
+6. The tool extracts relevant market information.
+7. The results are passed back to the LLM.
+8. The LLM generates the final response for the user.
+
+```text
+User Prompt
+    │
+    ▼
+   Ollama
+ qwen3.5:9b
+    │
+    ▼
+  LangGraph
+    │
+    ├──── No tool required ────► Response
+    │
+    ▼
+simple_screener
+    │
+    ▼
+ Yahoo Finance
+    │
+    ▼
+Screener Results
+    │
+    ▼
+    LLM
+    │
+    ▼
+   User
+```
 
 ## Features
 
-* **Natural-language stock screening** — Ask for stocks using normal language instead of manually selecting filters.
-* **Yahoo Finance integration** — Uses `yfinance` to retrieve stock screening and market data.
-* **LLM tool calling** — The model determines when and how to use the stock screening tool.
-* **LangGraph workflow** — Handles the interaction between the user, LLM, and screening tool.
-* **Local LLM support** — Runs with Ollama using the `qwen3.5:9b` model.
-* **Conversation memory** — Uses LangGraph's in-memory checkpointer to preserve context during a session.
+* **Natural-language stock screening** — Search for stocks and other financial assets using normal language.
+* **Yahoo Finance integration** — Uses `yfinance` to retrieve screener and market data.
+* **LLM tool calling** — The model determines when the stock screening tool should be used.
+* **LangGraph workflow** — Coordinates the interaction between the user, LLM, and Yahoo Finance tool.
+* **Local LLM** — Uses Ollama with the `qwen3.5:9b` model.
+* **Conversation memory** — Uses LangGraph's in-memory checkpointer to maintain context during a session.
+* **Paginated screening** — Supports an offset parameter and retrieves five results per tool call.
 
-Supported Yahoo Finance screeners include:
+Supported Yahoo Finance predefined screeners include:
 
 * Aggressive small caps
 * Day gainers
@@ -44,84 +75,79 @@ Supported Yahoo Finance screeners include:
 
 ## Requirements
 
-* Python 3.14
-* Ollama
+* Python 3.14+
+* [uv](https://docs.astral.sh/uv/)
+* [Ollama](https://ollama.com/)
 * `qwen3.5:9b` Ollama model
 
-Python dependencies:
-
-* `langchain`
-* `langchain-ollama`
-* `langgraph`
-* `yfinance`
-* `colorama`
+Python dependencies are managed through `pyproject.toml`.
 
 ## Installation
 
 Clone the repository:
 
-```bash id="w96gb9"
+```bash
 git clone https://github.com/AndreiBanu1/stock-screener-llm.git
 cd stock-screener-llm
 ```
 
-Create and activate a virtual environment:
+Install the project dependencies:
 
-```bash id="pmkz5z"
-python3.14 -m venv .venv
-source .venv/bin/activate
+```bash
+uv sync
 ```
 
-Install the required Python packages:
+Make sure Ollama is installed and running.
 
-```bash id="lvtskc"
-pip install langchain langchain-ollama langgraph yfinance colorama
-```
+Pull the model used by the application:
 
-Make sure Ollama is installed and running, then download the model used by the application:
-
-```bash id="ctkx56"
+```bash
 ollama pull qwen3.5:9b
 ```
 
 ## Usage
 
-Start the application:
+Run the application with:
 
-```bash id="g7ufw6"
-python flow.py
+```bash
+uv run python flow.py
 ```
 
 You will be prompted to enter a request:
 
-```text id="vnofnt"
+```text
 🤖 Pass your prompt here:
 ```
 
-For example:
+Example prompts:
 
-```text id="8k84ce"
+```text
 Show me today's top gainers
 ```
 
-```text id="63cr8d"
+```text
 Find undervalued growth stocks
 ```
 
-```text id="m4nwur"
+```text
 Show me aggressive growth stocks from the technology sector
 ```
 
-The LLM interprets the request and calls the stock screening tool when appropriate.
+```text
+List the most active stocks
+```
+
+Press `Ctrl+C` to stop the application.
 
 ## Project Structure
 
-The application consists of two Python source files:
-
-```text id="ra6kbu"
+```text
 .
-├── flow.py    # LangGraph workflow, LLM integration, and CLI
-└── tool.py    # Yahoo Finance stock screening tool
+├── flow.py          # LangGraph workflow, LLM integration, and CLI
+├── tool.py          # Yahoo Finance stock screening tool
+├── pyproject.toml   # Project metadata and dependencies
+├── uv.lock          # Locked dependency versions
+└── README.md        # Project documentation
 ```
 
 ### `flow.py`
@@ -130,81 +156,72 @@ Defines the LangGraph workflow and connects the application to the local Ollama 
 
 It is responsible for:
 
-* Initializing `qwen3.5:9b` through `ChatOllama`
+* Initializing `qwen3.5:9b` with `ChatOllama`
 * Binding the stock screener as an LLM tool
-* Routing between the LLM and tool execution
-* Maintaining conversation state in memory
-* Handling the command-line interaction
+* Routing between LLM responses and tool execution
+* Maintaining conversation state with `InMemorySaver`
+* Handling the interactive command-line interface
 
 ### `tool.py`
 
-Contains the `simple_screener` LangChain tool.
+Defines the `simple_screener` LangChain tool.
 
-It:
+It is responsible for:
 
-* Receives a Yahoo Finance screener type
-* Retrieves the corresponding predefined query
-* Requests results through `yfinance`
-* Extracts selected financial fields
-* Returns the results to the LLM
+* Receiving a Yahoo Finance screener type
+* Receiving an offset for pagination
+* Selecting one of Yahoo Finance's predefined screener queries
+* Retrieving five matching assets using `yfinance`
+* Extracting relevant financial information
+* Returning the filtered results to the LLM
 
-The returned stock information can include:
+The extracted fields can include:
 
 * Symbol
-* Company name
-* Bid and ask prices
+* Company or asset name
+* Bid price
+* Ask price
 * Exchange
-* 52-week high and low
-* Analyst rating
+* 52-week high
+* 52-week low
+* Average analyst rating
 * Dividend yield
+
+The raw Yahoo Finance screener response is also written to `output.json` during execution for inspection and debugging.
 
 ## Example
 
-### Input
+### Prompt
 
-```text id="tr5z5d"
+```text
 Return aggressive growth stocks from the technology sector.
 ```
 
-The LLM can translate the request into an appropriate Yahoo Finance screener, execute it, and return matching stocks together with relevant market information.
+The LLM interprets the request, selects an appropriate predefined Yahoo Finance screener, retrieves matching assets, and uses the returned market data to generate a response.
 
-The exact stocks and values returned depend on the market data available from Yahoo Finance at the time of the request.
+Results vary depending on the market data available from Yahoo Finance at the time of the request.
 
-## Architecture
+## Development
 
-```text id="1dkvlw"
-User Prompt
-    │
-    ▼
-  Ollama
- qwen3.5:9b
-    │
-    ▼
- LangGraph
-    │
-    ├──── No tool required ────► Response
-    │
-    ▼
-simple_screener
-    │
-    ▼
- Yahoo Finance
-    │
-    ▼
- Screener Results
-    │
-    ▼
-    LLM
-    │
-    ▼
-   User
+Ruff is included as a development dependency.
+
+Run the linter with:
+
+```bash
+uv run ruff check .
+```
+
+To automatically fix supported linting issues:
+
+```bash
+uv run ruff check --fix .
 ```
 
 ## Disclaimer
 
 This project is intended for educational and informational purposes only.
 
-Market data provided by Yahoo Finance may be delayed, incomplete, or inaccurate. The output generated by the application should not be considered financial or investment advice.
+Market data provided by Yahoo Finance may be delayed, incomplete, or inaccurate. LLM-generated responses may also contain errors. The output of this application should not be considered financial or investment advice.
 
 ## License
 

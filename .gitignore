@@ -32,6 +32,3 @@ Thumbs.db
 
 # Project-specific
 uv.lock
-
-pyproject.toml
-.python-version
